@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: plant-disease-api
+  labels:
+    app: plant-disease-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: plant-disease-api
+  template:
+    metadata:
+      labels:
+        app: plant-disease-api
+    spec:
+      containers:
+        - name: plant-disease-app
+          image: final-project:v1
+          ports:
+            - containerPort: 8000
+          env:
+            - name: MODEL_VERSION
+              value: "v2"
+            - name: MODEL_PATH
+              value: "/app/models/plant_disease_v2.pth"
+            - name: CLASS_NAMES_PATH
+              value: "/app/models/class_names.json"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 30
+          imagePullPolicy: IfNotPresent

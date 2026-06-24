@@ -1,0 +1,8 @@
+venv/
+.venv/
+.venv312/
+.venv-wsl/
+.vscode/
+__pycache__/
+*.pyc
+mlruns/
