@@ -1,5 +1,13 @@
+import logging
+
 import torch
 import torch.nn as nn
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+)
 
 
 class BaselineCNN(nn.Module):
@@ -103,7 +111,7 @@ def get_model(version: str = "v1", num_classes: int = 15) -> nn.Module:
 
 if __name__ == "__main__":
     model = get_model(version="v2", num_classes=15)
-    print(model)
+    logger.info(f"Model architecture:\n{model}")
     sample = torch.randn(1, 3, 224, 224)
     out = model(sample)
-    print("Output shape:", out.shape)
+    logger.info(f"Output shape: {out.shape}")

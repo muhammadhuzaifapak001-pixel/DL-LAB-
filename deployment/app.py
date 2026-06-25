@@ -1,9 +1,16 @@
+import logging
 import os
 import sys
 from pathlib import Path
 
 import torch
 from fastapi import FastAPI, File, HTTPException, UploadFile, status
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+)
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 if str(ROOT_DIR) not in sys.path:
@@ -26,9 +33,10 @@ async def startup_event():
     # Attempt to load class names and model, but don't crash the whole app on failure.
     try:
         app.state.class_names = load_class_names(CLASS_NAMES_PATH)
+        logger.info(f"Loaded class names from {CLASS_NAMES_PATH}")
     except Exception as exc:
         app.state.class_names = None
-        print(f"Warning: failed to load class names from {CLASS_NAMES_PATH}: {exc}")
+        logger.error(f"Failed to load class names from {CLASS_NAMES_PATH}: {exc}")
 
     try:
         if app.state.class_names is not None:
@@ -39,14 +47,15 @@ async def startup_event():
                 device=DEVICE,
             )
             app.state.model_version = MODEL_VERSION
+            logger.info(f"Model {MODEL_VERSION} loaded successfully on {DEVICE}")
         else:
             app.state.model = None
             app.state.model_version = MODEL_VERSION
-            print("Model not loaded because class names are missing.")
+            logger.warning("Model not loaded because class names are missing.")
     except Exception as exc:
         app.state.model = None
         app.state.model_version = MODEL_VERSION
-        print(f"Warning: failed to load model from {MODEL_PATH}: {exc}")
+        logger.error(f"Failed to load model from {MODEL_PATH}: {exc}")
 
 
 @app.get("/")

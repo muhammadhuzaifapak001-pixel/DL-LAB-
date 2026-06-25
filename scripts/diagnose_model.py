@@ -7,9 +7,16 @@ This script must be run in an environment with torch installed (recommended: Lin
 """
 import argparse
 import json
+import logging
 from pathlib import Path
 
 import torch
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+)
 
 from src.model import get_model
 
@@ -25,7 +32,7 @@ def main():
     out_path = Path(args.out)
 
     if not model_path.exists():
-        print(f"Model file not found: {model_path}")
+        logger.error(f"Model file not found: {model_path}")
         return
 
     # Load state dict to inspect final layer size
@@ -50,10 +57,10 @@ def main():
             pass
 
     if num_classes is None:
-        print("Could not determine number of classes from the model. Please provide class_names.json manually.")
+        logger.error("Could not determine number of classes from the model. Please provide class_names.json manually.")
         return
 
-    print(f"Detected num_classes={num_classes}")
+    logger.info(f"Detected num_classes={num_classes}")
 
     # Create placeholder class names
     class_names = [f"class_{i}" for i in range(num_classes)]
@@ -61,7 +68,7 @@ def main():
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(class_names, f, indent=2)
 
-    print(f"Wrote placeholder class names to {out_path}")
+    logger.info(f"Wrote placeholder class names to {out_path}")
 
 
 if __name__ == "__main__":

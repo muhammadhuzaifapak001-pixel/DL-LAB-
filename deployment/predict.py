@@ -1,7 +1,14 @@
 import argparse
+import logging
 from pathlib import Path
 
 import torch
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+)
 
 from deployment.utils import load_class_names, load_model, predict_image, preprocess_image
 
@@ -38,6 +45,7 @@ def main():
 
     tensor = preprocess_image(image_bytes, device)
     result = predict_image(model, tensor, class_names)
+    logger.info(f"Prediction result: {result}")
     print("Prediction:")
     print(result)
 

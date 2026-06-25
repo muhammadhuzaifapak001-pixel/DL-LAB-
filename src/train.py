@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import random
 import sys
@@ -15,6 +16,13 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from mlflow import pytorch
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[logging.StreamHandler()],
+)
 
 from src.data_loader import get_dataloaders
 from src.evaluate import evaluate_model
@@ -106,7 +114,7 @@ def train_model(
     if not data_dir.exists():
         for fallback in DEFAULT_DATA_DIR_ALTERNATES:
             if fallback.exists():
-                print(f"Dataset not found at {data_dir}. Using fallback {fallback}.")
+                logger.info(f"Dataset not found at {data_dir}. Using fallback {fallback}.")
                 data_dir = fallback
                 break
 
@@ -116,11 +124,11 @@ def train_model(
             "Please provide a valid PlantVillage dataset path or set PLANTVILLAGE_PATH."
         )
 
-    print("=" * 70)
-    print(f"Starting {version.upper()} training")
-    print(f"Dataset directory: {data_dir}")
-    print(f"Device: {device}")
-    print("=" * 70)
+    logger.info("=" * 70)
+    logger.info(f"Starting {version.upper()} training")
+    logger.info(f"Dataset directory: {data_dir}")
+    logger.info(f"Device: {device}")
+    logger.info("=" * 70)
 
     train_loader, val_loader, test_loader, class_names = get_dataloaders(
         data_dir=data_dir,
@@ -132,12 +140,12 @@ def train_model(
     optimizer, scheduler = build_optimizer_and_scheduler(model, version, learning_rate)
 
     tracking_uri = configure_mlflow(experiment_name)
-    print(f"MLflow tracking URI: {tracking_uri}")
+    logger.info(f"MLflow tracking URI: {tracking_uri}")
 
     best_model_path = DEFAULT_MODELS_DIR / f"plant_disease_{version}.pth"
     DEFAULT_MODELS_DIR.mkdir(parents=True, exist_ok=True)
     if skip_if_exists and best_model_path.exists():
-        print(f"Skipping {version} training because model already exists at {best_model_path}")
+        logger.info(f"Skipping {version} training because model already exists at {best_model_path}")
         return {
             "version": version,
             "model_path": str(best_model_path),
@@ -175,7 +183,7 @@ def train_model(
             mlflow.log_metric("train_accuracy", train_acc, step=epoch)
             mlflow.log_metric("val_accuracy", val_acc, step=epoch)
 
-            print(
+            logger.info(
                 f"Epoch [{epoch}/{num_epochs}] "
                 f"Train Loss: {train_loss:.4f} | Train Acc: {train_acc:.2f}% | "
                 f"Val Loss: {val_loss:.4f} | Val Acc: {val_acc:.2f}%"
@@ -184,7 +192,7 @@ def train_model(
             if val_acc > best_val_acc:
                 best_val_acc = val_acc
                 torch.save(model.state_dict(), best_model_path)
-                print(f"Saved best model: {best_model_path} (Val Acc: {best_val_acc:.2f}%)")
+                logger.info(f"Saved best model: {best_model_path} (Val Acc: {best_val_acc:.2f}%)")
 
         test_loss, test_acc = evaluate_model(model, test_loader, criterion, device)
         mlflow.log_metric("test_loss", test_loss)
@@ -215,11 +223,11 @@ def train_model(
         save_json(metrics, DEFAULT_MODELS_DIR / f"metrics_{version}.json")
         save_json(class_names, DEFAULT_CLASS_NAMES_PATH)
 
-        print("=" * 70)
-        print(f"{version.upper()} training completed")
-        print(f"Best Validation Accuracy: {best_val_acc:.2f}%")
-        print(f"Test Accuracy: {test_acc:.2f}%")
-        print("=" * 70)
+        logger.info("=" * 70)
+        logger.info(f"{version.upper()} training completed")
+        logger.info(f"Best Validation Accuracy: {best_val_acc:.2f}%")
+        logger.info(f"Test Accuracy: {test_acc:.2f}%")
+        logger.info("=" * 70)
 
     return metrics
 
@@ -229,7 +237,7 @@ def compare_models():
     v2_path = DEFAULT_MODELS_DIR / "metrics_v2.json"
 
     if not v1_path.exists() or not v2_path.exists():
-        print("Skipping comparison: both v1 and v2 metrics files must exist.")
+        logger.warning("Skipping comparison: both v1 and v2 metrics files must exist.")
         return
 
     with open(v1_path, "r", encoding="utf-8") as handle:
@@ -238,15 +246,15 @@ def compare_models():
     with open(v2_path, "r", encoding="utf-8") as handle:
         v2_metrics = json.load(handle)
 
-    print("Model comparison summary")
-    print("=" * 70)
-    print(
+    logger.info("Model comparison summary")
+    logger.info("=" * 70)
+    logger.info(
         "Metric\t\tV1\t\tV2\n"
         f"Best Val Acc\t{v1_metrics['best_val_accuracy']:.2f}%\t\t{v2_metrics['best_val_accuracy']:.2f}%\n"
         f"Test Acc\t\t{v1_metrics['test_accuracy']:.2f}%\t\t{v2_metrics['test_accuracy']:.2f}%\n"
         f"Test Loss\t\t{v1_metrics['test_loss']:.4f}\t\t{v2_metrics['test_loss']:.4f}\n"
     )
-    print("=" * 70)
+    logger.info("=" * 70)
 
 
 def parse_args():

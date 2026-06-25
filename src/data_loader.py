@@ -1,3 +1,5 @@
+import json
+import logging
 import os
 from pathlib import Path
 from typing import Tuple
@@ -5,6 +7,12 @@ from typing import Tuple
 import torch
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader, Subset
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+)
 
 
 def get_transforms(image_size: int = 224):
@@ -48,7 +56,7 @@ def get_dataloaders(
                 alternate_path = Path.cwd() / "Data" / data_path.name
 
             if alternate_path.exists():
-                print(f"Dataset directory not found at {data_path}. Using alternate path {alternate_path}.")
+                logger.info(f"Dataset directory not found at {data_path}. Using alternate path {alternate_path}.")
                 data_path = alternate_path
 
         if not data_path.exists():
@@ -112,17 +120,14 @@ def get_dataloaders(
 
 
 if __name__ == "__main__":
-    import json
-
     data_dir = os.getenv("PLANTVILLAGE_PATH", r"./Data/PlantVillage")
     train_loader, val_loader, test_loader, classes = get_dataloaders(
         data_dir=data_dir,
         batch_size=16,
     )
 
-    print(f"Loaded dataset from: {data_dir}")
-    print(f"Classes: {len(classes)}")
-    print(json.dumps(classes, indent=2))
-    print(f"Train batches: {len(train_loader)}")
-    print(f"Validation batches: {len(val_loader)}")
-    print(f"Test batches: {len(test_loader)}")
+    logger.info(f"Loaded dataset from: {data_dir}")
+    logger.info(f"Classes: {len(classes)}")
+    logger.info(f"Train batches: {len(train_loader)}")
+    logger.info(f"Validation batches: {len(val_loader)}")
+    logger.info(f"Test batches: {len(test_loader)}")
