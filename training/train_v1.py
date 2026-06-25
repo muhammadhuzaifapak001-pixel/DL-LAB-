@@ -5,7 +5,7 @@ from src.train import train_model
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Train the baseline v1 plant disease model.")
-    parser.add_argument("--data-dir", type=str, default="./data/PlantVillage")
+    parser.add_argument("--data-dir", type=str, default="./Data/PlantVillage")
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--epochs", type=int, default=15)
     parser.add_argument("--learning-rate", type=float, default=0.001)

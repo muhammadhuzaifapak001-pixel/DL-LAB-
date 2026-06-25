@@ -21,21 +21,32 @@ spec:
             - containerPort: 8000
           env:
             - name: MODEL_VERSION
-              value: "v2"
+              value: "v1"
             - name: MODEL_PATH
-              value: "/app/models/plant_disease_v2.pth"
+              value: "/app/models/plant_disease_v1.pth"
             - name: CLASS_NAMES_PATH
               value: "/app/models/class_names.json"
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "1"
+              memory: "1Gi"
           readinessProbe:
             httpGet:
               path: /health
               port: 8000
-            initialDelaySeconds: 10
+            initialDelaySeconds: 15
             periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
           livenessProbe:
             httpGet:
               path: /health
               port: 8000
-            initialDelaySeconds: 15
+            initialDelaySeconds: 20
             periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
           imagePullPolicy: IfNotPresent

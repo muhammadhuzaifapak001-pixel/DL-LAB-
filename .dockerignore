@@ -1,9 +1,11 @@
-@"
 .venv
 .venv-wsl
+.venv312
 venv
-__pycache__
+__pycache__/
 *.pyc
 .git
 .gitignore
-"@ | Set-Content .dockerignore
+mlruns/
+models/*.pth
+models/class_names.json

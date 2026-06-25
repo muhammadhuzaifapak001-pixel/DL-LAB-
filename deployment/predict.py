@@ -9,11 +9,11 @@ from deployment.utils import load_class_names, load_model, predict_image, prepro
 def main():
     parser = argparse.ArgumentParser(description="Run an offline prediction using a saved plant disease model.")
     parser.add_argument("--image-path", type=str, required=True, help="Path to the input image file.")
-    parser.add_argument("--model-version", type=str, default="v2", choices=["v1", "v2"])
+    parser.add_argument("--model-version", type=str, default="v1", choices=["v1", "v2"])
     parser.add_argument(
         "--model-path",
         type=str,
-        default="./models/plant_disease_v2.pth",
+        default="./models/plant_disease_v1.pth",
         help="Path to the PyTorch model weights file.",
     )
     parser.add_argument(

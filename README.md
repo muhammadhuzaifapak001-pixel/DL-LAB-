@@ -11,7 +11,7 @@ Plant disease detection is critical for agriculture and food security. An automa
 ## Dataset Source
 
 - PlantVillage dataset
-- Expected to be stored under `./data/PlantVillage`
+- Expected to be stored under `./Data/PlantVillage` (or `./data/PlantVillage` as a fallback)
 - The dataset should contain class subfolders for each plant disease category
 
 ## Expected Outcomes
@@ -52,28 +52,39 @@ This project is best developed and tested on Linux, preferably Ubuntu 22.04 or 2
 
 ## Setup
 
-Install dependencies:
-```bash
+Create and activate the project virtual environment on Windows:
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+If you want Python 3.12, use `.venv312` instead:
+```powershell
+python -m venv .venv312
+.\.venv312\Scripts\Activate.ps1
+python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
 Prepare dataset:
-```bash
-mkdir -p data/PlantVillage
-# copy PlantVillage images into data/PlantVillage
+```powershell
+mkdir -Force .\Data\PlantVillage
+# copy PlantVillage images into .\Data\PlantVillage
 ```
 
 ## Training
 
 Train both versions:
 ```bash
-python src/train.py --version both --data-dir ./data/PlantVillage --epochs 15 --batch-size 32
+python src/train.py --version both --data-dir ./Data/PlantVillage --epochs 15 --batch-size 32
 ```
 
 Train a single version:
 ```bash
-python training/train_v1.py --data-dir ./data/PlantVillage
-python training/train_v2.py --data-dir ./data/PlantVillage
+python training/train_v1.py --data-dir ./Data/PlantVillage
+python training/train_v2.py --data-dir ./Data/PlantVillage
 ```
 
 ## MLflow

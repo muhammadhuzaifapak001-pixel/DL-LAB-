@@ -114,7 +114,7 @@ def get_dataloaders(
 if __name__ == "__main__":
     import json
 
-    data_dir = os.getenv("PLANTVILLAGE_PATH", r"./data/PlantVillage")
+    data_dir = os.getenv("PLANTVILLAGE_PATH", r"./Data/PlantVillage")
     train_loader, val_loader, test_loader, classes = get_dataloaders(
         data_dir=data_dir,
         batch_size=16,

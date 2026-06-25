@@ -1,4 +1,8 @@
 {
-  "python.defaultInterpreterPath": "/mnt/c/Users/hasna/OneDrive/Desktop/DL(Lab)/venv/bin/python",
-  "python.pythonPath": "/mnt/c/Users/hasna/OneDrive/Desktop/DL(Lab)/venv/bin/python"
+  "python.defaultInterpreterPath": "${workspaceFolder}\\.venv312\\Scripts\\python.exe",
+  "python.pythonPath": "${workspaceFolder}\\.venv312\\Scripts\\python.exe",
+  "python.analysis.extraPaths": [
+    "${workspaceFolder}/src"
+  ],
+  "python-envs.defaultEnvManager": "ms-python.python:venv"
 }

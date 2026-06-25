@@ -24,8 +24,12 @@ ROOT_DIR = Path(__file__).resolve().parents[1]
 DEFAULT_MODELS_DIR = ROOT_DIR / "models"
 DEFAULT_MLRUNS_DIR = ROOT_DIR / "mlruns"
 DEFAULT_CLASS_NAMES_PATH = DEFAULT_MODELS_DIR / "class_names.json"
-DEFAULT_DATA_DIR = Path(os.getenv("PLANTVILLAGE_PATH", "./data/PlantVillage"))
-DEFAULT_DATA_DIR_FALLBACK = Path(r"C:\Users\hasna\Downloads\PlantVillage\PlantVillage")
+DEFAULT_DATA_DIR = Path(os.getenv("PLANTVILLAGE_PATH", "./Data/PlantVillage"))
+DEFAULT_DATA_DIR_ALTERNATES = [
+    Path("./data/PlantVillage"),
+    Path("./Data/PlantVillage"),
+    Path(r"C:\Users\hasna\Downloads\PlantVillage\PlantVillage"),
+]
 
 
 def set_seed(seed: int = 42):
@@ -38,6 +42,7 @@ def set_seed(seed: int = 42):
 
 
 def configure_mlflow(experiment_name: str, tracking_dir: Path = DEFAULT_MLRUNS_DIR):
+    tracking_dir.mkdir(parents=True, exist_ok=True)
     tracking_uri = tracking_dir.resolve().as_uri()
     os.environ.setdefault("MLFLOW_ALLOW_FILE_STORE", "true")
     mlflow.set_tracking_uri(tracking_uri)
@@ -99,7 +104,17 @@ def train_model(
     data_dir = Path(data_dir).expanduser()
 
     if not data_dir.exists():
-        data_dir = DEFAULT_DATA_DIR_FALLBACK
+        for fallback in DEFAULT_DATA_DIR_ALTERNATES:
+            if fallback.exists():
+                print(f"Dataset not found at {data_dir}. Using fallback {fallback}.")
+                data_dir = fallback
+                break
+
+    if not data_dir.exists():
+        raise FileNotFoundError(
+            f"Dataset directory not found: {data_dir}. "
+            "Please provide a valid PlantVillage dataset path or set PLANTVILLAGE_PATH."
+        )
 
     print("=" * 70)
     print(f"Starting {version.upper()} training")
@@ -175,7 +190,12 @@ def train_model(
         mlflow.log_metric("test_loss", test_loss)
         mlflow.log_metric("test_accuracy", test_acc)
 
-        mlflow.log_artifact(str(best_model_path), artifact_path="model_artifacts")
+        if best_model_path.exists():
+            mlflow.log_artifact(str(best_model_path), artifact_path="model_artifacts")
+
+        save_json(class_names, DEFAULT_CLASS_NAMES_PATH)
+        if DEFAULT_CLASS_NAMES_PATH.exists():
+            mlflow.log_artifact(str(DEFAULT_CLASS_NAMES_PATH), artifact_path="model_artifacts")
 
         metrics = {
             "version": version,
