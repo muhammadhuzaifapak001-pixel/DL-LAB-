@@ -38,6 +38,7 @@ DEFAULT_DATA_DIR_ALTERNATES = [
     Path("./Data/PlantVillage"),
     Path(r"C:\Users\hasna\Downloads\PlantVillage\PlantVillage"),
 ]
+CHECKPOINT_SAVE_FREQUENCY = 5
 
 
 def set_seed(seed: int = 42):
@@ -143,16 +144,29 @@ def train_model(
     logger.info(f"MLflow tracking URI: {tracking_uri}")
 
     best_model_path = DEFAULT_MODELS_DIR / f"plant_disease_{version}.pth"
+    final_model_path = DEFAULT_MODELS_DIR / f"plant_disease_{version}_final.pth"
+    checkpoint_path = DEFAULT_MODELS_DIR / f"plant_disease_{version}_checkpoint.pth"
     DEFAULT_MODELS_DIR.mkdir(parents=True, exist_ok=True)
-    if skip_if_exists and best_model_path.exists():
-        logger.info(f"Skipping {version} training because model already exists at {best_model_path}")
+
+    if skip_if_exists and final_model_path.exists():
+        logger.info(f"Skipping {version} training because final model already exists at {final_model_path}")
         return {
             "version": version,
-            "model_path": str(best_model_path),
+            "model_path": str(final_model_path),
             "status": "skipped",
         }
 
     best_val_acc = 0.0
+    start_epoch = 1
+    if checkpoint_path.exists():
+        checkpoint = torch.load(checkpoint_path, map_location=device)
+        model.load_state_dict(checkpoint["model_state_dict"])
+        optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+        if scheduler is not None and "scheduler_state_dict" in checkpoint:
+            scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
+        start_epoch = checkpoint.get("epoch", 0) + 1
+        best_val_acc = checkpoint.get("best_val_acc", 0.0)
+        logger.info(f"Resuming {version} training from checkpoint at epoch {start_epoch}.")
 
     with mlflow.start_run(run_name=f"{version}_{int(time.time())}") as run:
         mlflow.log_params(
@@ -169,7 +183,7 @@ def train_model(
         if version == "v2":
             mlflow.log_param("scheduler", "StepLR(step_size=5,gamma=0.6)")
 
-        for epoch in range(1, num_epochs + 1):
+        for epoch in range(start_epoch, num_epochs + 1):
             train_loss, train_acc = train_one_epoch(
                 model, train_loader, criterion, optimizer, device
             )
@@ -194,12 +208,37 @@ def train_model(
                 torch.save(model.state_dict(), best_model_path)
                 logger.info(f"Saved best model: {best_model_path} (Val Acc: {best_val_acc:.2f}%)")
 
+            if epoch % CHECKPOINT_SAVE_FREQUENCY == 0 or epoch == num_epochs:
+                checkpoint = {
+                    "epoch": epoch,
+                    "model_state_dict": model.state_dict(),
+                    "optimizer_state_dict": optimizer.state_dict(),
+                    "best_val_acc": best_val_acc,
+                }
+                if scheduler is not None:
+                    checkpoint["scheduler_state_dict"] = scheduler.state_dict()
+                torch.save(checkpoint, checkpoint_path)
+                logger.info(f"Saved checkpoint at epoch {epoch}: {checkpoint_path}")
+
         test_loss, test_acc = evaluate_model(model, test_loader, criterion, device)
         mlflow.log_metric("test_loss", test_loss)
         mlflow.log_metric("test_accuracy", test_acc)
 
+        final_model_path = DEFAULT_MODELS_DIR / f"plant_disease_{version}_final.pth"
+        torch.save(model.state_dict(), final_model_path)
+        logger.info(f"Saved final model weights: {final_model_path}")
+
         if best_model_path.exists():
             mlflow.log_artifact(str(best_model_path), artifact_path="model_artifacts")
+        if final_model_path.exists():
+            mlflow.log_artifact(str(final_model_path), artifact_path="model_artifacts")
+
+        if checkpoint_path.exists():
+            try:
+                checkpoint_path.unlink()
+                logger.info(f"Removed completed checkpoint: {checkpoint_path}")
+            except OSError:
+                logger.warning(f"Could not remove checkpoint file: {checkpoint_path}")
 
         save_json(class_names, DEFAULT_CLASS_NAMES_PATH)
         if DEFAULT_CLASS_NAMES_PATH.exists():
@@ -216,6 +255,7 @@ def train_model(
             "best_val_loss": val_loss,
             "test_loss": test_loss,
             "model_path": str(best_model_path),
+            "final_model_path": str(final_model_path),
             "class_names_path": str(DEFAULT_CLASS_NAMES_PATH),
             "run_id": run.info.run_id,
         }
